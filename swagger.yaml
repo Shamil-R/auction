@@ -1,0 +1,1333 @@
+swagger: '2.0'
+
+info:
+  version: 1.0.0
+  title: Auction API
+  description: API
+  
+schemes:
+- "http"
+
+host: "localhost:8080"
+basePath: "/"
+
+security:
+- JWT: []
+  
+consumes:
+- application/json
+
+produces:
+- application/json
+
+tags:
+- name: auth
+- name: groups
+- name: users
+- name: lots
+- name: service
+
+paths:
+  /login:
+    post:
+      summary: /login
+      tags:
+      - auth
+      security: []
+      consumes: 
+      - application/x-www-form-urlencoded
+      parameters:
+      - in: formData
+        name: username
+        type: string
+        required: true
+      - in: formData
+        name: password
+        type: string
+        required: true
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              token:
+                type: string
+  /groups:
+    get:
+      summary: /groups
+      description: Получить список групп.
+      tags:
+      - groups
+      responses:
+        200:
+          description: Группы лотов
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Group'
+    post:
+      summary: /groups
+      tags:
+      - groups
+      parameters: 
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Group'
+      responses:
+        201:
+          description: Группа
+          schema:
+            $ref: '#/definitions/Group'
+  /users:
+    get:
+      summary: /users
+      tags:
+      - users
+      responses:
+        200:
+          description: Список пользователей
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+    post:
+      summary: /users
+      tags:
+      - users
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          allOf: 
+          - $ref: '#/definitions/User'
+          - type: object
+            properties:
+              password:
+                type: string
+                format: password
+            required:
+            - password
+      responses:
+        201:
+          description: Пользователь
+          schema:
+            $ref: '#/definitions/User'
+    patch:
+      summary: /users
+      tags:
+      - users
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          allOf: 
+          - $ref: '#/definitions/UserInfo'
+          - type: object
+      responses:
+        201:
+          description: Пользователь
+          schema:
+            $ref: '#/definitions/User'
+  /users/{userID}:
+    parameters: 
+    - $ref: '#/parameters/UserID'
+    get:
+      summary: /users/:id
+      tags:
+      - users
+      responses:
+        200:
+          $ref: '#/responses/User'
+        404:
+          $ref: '#/responses/UserNotFound'
+  /users/{userID}/goups/{groupKey}:
+    parameters: 
+    - $ref: '#/parameters/UserID'
+    - in: path
+      name: groupKey
+      description: Ключ группы
+      type: string
+      required: true
+    put:
+      summary: /users/{userID}/goups/{groupKey}
+      tags:
+      - users
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+    delete:
+      summary: /users/{userID}/goups/{groupKey}
+      description: Удалить группу у пользователя
+      tags:
+      - users
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+
+  /user/{userID}/block:
+    patch:
+      summary: '/user/{userID}/block'
+      tags:
+        - user
+      responses:
+        '204':
+          $ref: '#/responses/NoContent'
+        '404':
+          $ref: '#/responses/UserNotFound'
+      parameters:
+        - $ref: '#/parameters/UserID'
+        - in: path
+          name: userID
+          type: integer
+          required: true
+
+  /user/{userID}/unblock:
+    patch:
+      summary: '/user/{userID}/unblock'
+      tags:
+        - user
+      responses:
+        '204':
+          $ref: '#/responses/NoContent'
+        '404':
+          $ref: '#/responses/UserNotFound'
+      parameters:
+        - $ref: '#/parameters/UserID'
+        - in: path
+          name: userID
+          type: integer
+          required: true
+  /lots:
+    get:
+      summary: /lots
+      tags:
+      - lots
+      parameters: 
+      - in: query
+        name: group_key
+        description: Группа объектов
+        required: true
+        type: string
+      - in: query
+        name: state
+        description: |
+          Состояние лота:
+          * all - Все
+          * active - Активные
+          * booked - Забронированые
+          * completed - Завершенные
+          * no_completed - Не завершенные
+        type: string
+      - in: query
+        name: lot_id
+        description: ID лота.
+        type: integer
+        format: uint32
+      - in: query
+        name: object_id
+        description: ID объекта лота.
+        type: integer
+        format: uint32
+      - in: query
+        name: start_price
+        description: Нижняя граница стоимости лота.
+        type: integer
+        format: uint32
+      - in: query
+        name: end_price
+        description: Верхняя граница стоимости лота.
+        type: integer
+        format: uint32
+      # Фильтры для лотов с объектом типа 'trip'
+      - in: query
+        name: city_from
+        description: |
+          Первый город погрузки. Действует для лота с объектом типа 'trip'.
+        type: string
+      - in: query
+        name: city_to
+        description: |
+          Последний город разгрузки. Действует для лота с объектом типа 'trip'.
+        type: string
+      - in: query
+        name: from_start_date
+        description: |
+          Начало периода для даты погрузки. Действует для лота с объектом типа 'trip'.
+        type: string
+        format: date-time
+      - in: query
+        name: from_end_date
+        description: |
+          Конец периода для даты погрузки. Действует для лота с объектом типа 'trip'.
+        type: string
+        format: date-time
+      - in: query
+        name: to_start_date
+        description: |
+          Начало периода для даты разгрузки. Действует для лота с объектом типа 'trip'.
+        type: string
+        format: date-time
+      - in: query
+        name: ещ_end_date
+        description: |
+          Конец периода для даты разгрузки. Действует для лота с объектом типа 'trip'.
+        type: string
+        format: date-time
+      - in: query
+        name: start_tonnage
+        description: |
+          Нижняя граница тоннажа. Действует для лота с объектом типа 'trip'.
+        type: integer
+        format: uint32
+      - in: query
+        name: end_tonnage
+        description: |
+          Верхняя граница тоннажа. Действует для лота с объектом типа 'trip'.
+        type: integer
+        format: uint32
+      responses:
+        200:
+          description: Список лотов
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Lot'
+      x-code-samples:
+      - lang: WebSocket Command
+        source: |
+          {
+            "type": "command.get.lots",
+            "payload": {
+              "group_key": "group_key",
+              "state": "state",
+              "object_id": 0,
+              "start_price": 0,
+              "end_price": 0,
+              "city_from": "city_from",
+              "city_to": "city_to",
+              "start_date": "2018-05-20T20:09:27Z",
+              "end_date": "2018-05-25T20:09:27Z",
+              "start_tonnage": 0,
+              "end_tonnage": 0
+            }
+          }
+    post:
+      summary: /lots
+      tags:
+      - lots
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Lot'
+      responses:
+        201:
+          $ref: '#/responses/Lot'
+  /lots/{lotID}:
+    parameters: 
+    - $ref: '#/parameters/LotID'
+    get:
+      summary: /lots/:id
+      tags:
+      - lots
+      responses:
+        200:
+          $ref: '#/responses/Lot'
+        404:
+          $ref: '#/responses/LotNotFound'
+    x-code-samples:
+    - lang: WebSocket Command
+      source: |
+        {
+          "type": "command.get.lot",
+          "payload": {
+            "lot_id": 0
+          }
+        }
+    patch:
+      summary: /lots/:id
+      tags:
+      - lots
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Lot'
+      responses:
+        200:
+          $ref: '#/responses/Lot'
+        404:
+          $ref: '#/responses/LotNotFound'
+    delete:
+      summary: /lots/:id
+      tags:
+      - lots
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+        404:
+          $ref: '#/responses/LotNotFound'
+  /lots/{lotID}/bet:
+    parameters: 
+    - $ref: '#/parameters/LotID'
+    post:
+      summary: /lots/:id/bet
+      tags:
+      - lots
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Bet'
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+        404:
+          $ref: '#/responses/LotNotFound'
+      x-code-samples:
+      - lang: WebSocket Command
+        source: |
+          {
+            "type": "command.place.bet",
+            "payload": {
+              "lot_id": 0,
+              "value": 0
+            }
+          }
+    delete:
+      summary: /lots/:id/bet
+      tags:
+      - lots
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+        404:
+          $ref: '#/responses/LotNotFound'
+      x-code-samples:
+      - lang: WebSocket Command
+        source: |
+          {
+            "type": "command.cancel.bet",
+            "payload": {
+              "lot_id": 0
+            }
+          }
+  /lots/{lotID}/confirm:
+    parameters: 
+    - $ref: '#/parameters/LotID'
+    put:
+      summary: /lots/:id/confirm
+      tags:
+      - lots
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Confirm'
+      responses:
+        404:
+          $ref: '#/responses/LotNotFound'
+      x-code-samples:
+      - lang: WebSocket Command
+        source: |
+          {
+            "type": "command.confirm.lot",
+            "payload": {
+              "lot_id": 0,
+              "info": {
+                "surname": "surname",
+                "name": "name",
+                "patronymic": "patronymic",
+                "truck_number": "truck_number",
+                "trailer_number": "trailer_number",
+                "phone_number": "phone_number",
+                "date_arrival": "date_arrival"
+              }
+            }
+          }
+    patch:
+      summary: /lots/:id/confirm
+      tags:
+      - lots
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Confirm'
+      responses:
+        404:
+          $ref: '#/responses/LotNotFound'
+      x-code-samples:
+      - lang: WebSocket Command
+        source: |
+          {
+            "type": "command.edit.confirmation",
+            "payload": {
+              "lot_id": 0,
+              "info": {
+                "surname": "surname",
+                "name": "name",
+                "patronymic": "patronymic",
+                "truck_number": "truck_number",
+                "trailer_number": "trailer_number",
+                "phone_number": "phone_number",
+                "date_arrival": "date_arrival"
+              }
+            }
+          }
+    delete:
+      summary: /lots/:id/confirm
+      tags:
+      - lots
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+        404:
+          $ref: '#/responses/LotNotFound'
+      x-code-samples:
+      - lang: WebSocket Command
+        source: |
+          {
+            "type": "command.delete.confirmation",
+            "payload": {
+              "lot_id": 0
+            }
+          }
+  /lots/{lotID}/complete:
+    parameters: 
+    - $ref: '#/parameters/LotID'
+    put:
+      summary: /lots/:id/complete
+      tags:
+      - lots
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Complete'
+      responses:
+        404:
+          $ref: '#/responses/LotNotFound'
+      x-code-samples:
+      - lang: WebSocket Command
+        source: |
+          {
+            "type": "command.complete.lot",
+            "payload": {
+              "lot_id": 0,
+              "info": {
+                "act_number" :"act_number",
+                "act_date" :"act_date",
+                "send_date" :"send_date",
+                "receive_date" :"receive_date",
+                "receive_repeat_date" :"receive_repeat_date",
+                "registry_date" :"registry_date",
+                "payment_date" :"payment_date",
+                "rise_in_price" :"rise_in_price",
+                "comment" :"comment"
+              }
+            }
+          }
+  /lots/{lotID}/reservation:
+    parameters: 
+    - $ref: '#/parameters/LotID'
+    post:
+      summary: /lots/:id/reservation
+      tags:
+      - lots
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+        404:
+          $ref: '#/responses/LotNotFound'
+    delete:
+      summary: /lots/:id/reservation
+      tags:
+      - lots
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+        404:
+          $ref: '#/responses/LotNotFound'
+  /lots/{lotID}/history:
+    parameters: 
+    - $ref: '#/parameters/LotID'
+    get:
+      summary: /lots/{lotID}/history
+      tags:
+      - lots
+      responses:
+        200:
+          description: Список лотов
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/History'
+  /lots/{lotID}/act:
+    parameters:
+      - $ref: '#/parameters/LotID'
+    get:
+      summary: /lots/:id/act
+      tags:
+        - lots
+      responses:
+        200:
+          $ref: '#/definitions/GetActStructure'
+        400:
+          $ref: '#/definitions/MissingLotID'
+        404:
+          $ref: '#/responses/LotNotFound'
+
+    patch:
+      summary: /lots/{lotID}/act
+      tags:
+        - lots
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/ChangeActStructure'
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+        400:
+          $ref: '#/responses/UpdateAct400Errors'
+        404:
+          $ref: '#/responses/LotNotFound'
+
+  /lots/{lotID}/act_allow_change:
+    parameters:
+      - $ref: '#/parameters/LotID'
+    post:
+      summary: /lots/{lotID}/act_allow_change
+      description: Открытие доступа на редактирование акта
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/AllowChangeStructure'
+      tags:
+        - lot
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+        400:
+          $ref: '#/responses/AllowActChanging400Errors'
+        404:
+          $ref: '#/responses/LotNotFound'
+
+  /lots/{lotID}/bets/{betID}/accept:
+    parameters: 
+    - $ref: '#/parameters/LotID'
+    - $ref: '#/parameters/BetID'
+    put:
+      summary: /lots/{lotID}/bets/{betID}/accept
+      description: Закрепление указанной ставки за лотом
+      tags:
+      - lots
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+  /feedback:
+    post:
+      summary: /feedback
+      description: Отправка обратной связи
+      tags:
+      - service
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Сообщение (с поддержкой markdown)
+      responses:
+        204:
+          $ref: '#/responses/NoContent'
+
+
+parameters:
+  UserID:
+    in: path
+    name: userID
+    description: Идентификатор пользователя
+    type: integer
+    format: int32
+    required: true
+  LotID:
+    in: path
+    name: lotID
+    description: Идентификатор лота
+    type: integer
+    format: int32
+    required: true
+  BetID:
+    in: path
+    name: betID
+    description: Идентификатор ставки
+    type: integer
+    format: int32
+    required: true
+
+responses:
+  NoContent:
+    description: No content
+  User:
+    description: Лот
+    schema:
+      $ref: '#/definitions/User'
+  Lot:
+    description: Лот
+    schema:
+      $ref: '#/definitions/Lot'
+  Bet:
+    description: Ставка
+    schema:
+      $ref: '#/definitions/Bet'
+  UserNotFound:
+    description: Пользователь не найден
+    schema:
+      $ref: '#/definitions/Error'
+  LotNotFound:
+    description: Лот не найден
+    schema:
+      $ref: '#/definitions/Error'
+  UpdateAct400Errors:
+    description: |
+      * Не передали doc_number
+      * Не передали date
+      * Пропущен параметр LotID
+      * Не прошла валидация параметра date
+      * Если allow_change у лота в значении 0, придет ошибка о том, что вы не можете вторично изменять акт
+      * Любая ошибка из проекта менеджера
+    schema:
+      $ref: '#/definitions/Error'
+  AllowActChanging400Errors:
+    schema:
+      $ref: '#/definitions/Error'
+    description: |
+      * Не передан LotID
+
+definitions:
+  UserInfo:
+    type: object
+    properties:
+      employer_name:
+        type: string
+      employer_surname:
+        type: string
+      employer_patronymic:
+        type: string
+      company_name:
+        type: string
+      phone_number:
+        type: string
+  User:
+    allOf: 
+    - $ref: '#/definitions/UserInfo'
+    - type: object
+      properties:
+        id:
+          type: integer
+          format: uint32
+          readOnly: true
+        username:
+          type: string
+        object_type:
+          $ref: '#/definitions/ObjectType'
+        back_key:
+          description: Ключ для обращение к сервису
+          type: string
+        employer_name:
+          type: string
+        employer_surname:
+          type: string
+        employer_patronymic:
+          type: string
+        company_name:
+          type: string
+        phone_number:
+          type: string
+    required: 
+    - username
+    - object_type
+  Group:
+    type: object
+    properties:
+      key:
+        description: Ключ группы
+        type: string
+      name:
+        description: Название группы
+        type: string
+      object_type:
+        description: Тип объекта
+        type: string
+    required: 
+    - key
+    - name
+    - object_type
+    example:
+      key: nc_trip
+      name: Рейсы НК
+      object_type: trip
+  Rule:
+    description: Конфигурация правил
+    type: object
+    properties:
+      type:
+        description: |
+          Типы правил
+          * normal - Правила обычного аукциона
+          * extra - Правила экстра аукциона
+          * pick - Правила забрать по базе
+        type: string
+        enum: 
+        - normal
+        - extra
+        - pick
+      start:
+        type: string
+      end:
+        type: string
+        readOnly: true
+      duration:
+        description: | 
+          Продолжительность правил (
+          https://golang.org/pkg/time/#ParseDuration - 
+          описание возможных вариантов значений)
+        type: string
+        format: duration
+    required: 
+    - type
+    - start
+    - duration
+    discriminator: type
+    example: 
+      type: normal
+      start: '15:00:00'
+      duration: '1h'
+  RuleNormal:
+    description: Конфигурация правил для обычного аукциона
+    allOf: 
+    - $ref: '#/definitions/Rule'
+    - type: object
+      properties:
+        base_price:
+          description: Базовая цена лота
+          type: integer
+          format: uint32
+          minimum: 0
+          exclusiveMinimum: true
+        bet_step:
+          description: Шаг изменения лота
+          type: integer
+          format: uint32
+          minimum: 0
+        last_moment:
+          description: | 
+            Остаток времени до конца интервала, для продления торгов (
+            https://golang.org/pkg/time/#ParseDuration - 
+            описание возможных вариантов значений)
+          type: string
+          format: duration
+          default: '15m'
+        prolong_duration:
+          description: | 
+            Продолжительность продления правила (
+            https://golang.org/pkg/time/#ParseDuration - 
+            описание возможных вариантов значений)
+          type: string
+          format: duration
+          default: '15m'
+        max_duration:
+          description: | 
+            Максимальная продолжительность торгов с у четом продления (
+            https://golang.org/pkg/time/#ParseDuration - 
+            описание возможных вариантов значений)
+          type: string
+          format: duration
+          default: '3h'
+        confirm_duration:
+          description: | 
+            Продолжительность подтверждения лота (
+            https://golang.org/pkg/time/#ParseDuration - 
+            описание возможных вариантов значений)
+          type: string
+          format: duration
+          default: '1h'
+      required: 
+      - base_price
+  RuleExtra:
+    description: Конфигурация правил для экстра аукциона
+    allOf: 
+    - $ref: '#/definitions/Rule'
+    - type: object
+      properties:
+        extra_price:
+          type: integer
+          format: uint32
+          minimum: 0
+          exclusiveMinimum: true
+        bet_step:
+          type: integer
+          format: uint32
+          minimum: 0
+        hot_duration:
+          description: | 
+            Продолжительность торгов с участием трех пользователей (
+            https://golang.org/pkg/time/#ParseDuration - 
+            описание возможных вариантов значений)
+          type: string
+          format: duration
+          default: '30m'
+        confirm_duration:
+          description: | 
+            Продолжительность подтверждения лота (
+            https://golang.org/pkg/time/#ParseDuration - 
+            описание возможных вариантов значений)
+          type: string
+          format: duration
+          default: '1h'
+      required: 
+      - extra_price
+  RulePick:
+    description: Конфигурация правил забрать по базе
+    allOf: 
+    - $ref: '#/definitions/Rule'
+    - type: object
+      properties:
+        base_price:
+          description: Базовая цена лота
+          type: integer
+          format: uint32
+          minimum: 0
+          exclusiveMinimum: true
+        confirm_duration:
+          description: | 
+            Продолжительность подтверждения лота (
+            https://golang.org/pkg/time/#ParseDuration - 
+            описание возможных вариантов значений)
+          type: string
+          format: duration
+          default: '1h'
+      required: 
+      - base_price
+  Lot:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: uint32
+        readOnly: true
+      rules:
+        description: Набор правил
+        type: array
+        items:
+          $ref: '#/definitions/Rule'
+        minItems: 1
+      created_at:
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        type: string
+        format: date-time
+        readOnly: true
+      booked_at:
+        description: Необходимо передавать для ручного бронирования лота
+        type: string
+        format: date-time
+      confirmed_at:
+        type: string
+        format: date-time
+        readOnly: true
+      completed_at:
+        type: string
+        format: date-time
+        readOnly: true
+      object_id:
+        type: integer
+        format: uint32
+      object:
+        $ref: '#/definitions/Object'
+      group_key:
+        type: string
+      bet:
+        description: Необходимо передавать для ручного бронирования лота
+        $ref: '#/definitions/Bet'
+      bet_step:
+        type: integer
+        format: uint32
+        minimum: 0
+      current_price:
+        description: Текущая ставка
+        type: integer
+        format: uint32
+        readOnly: true
+      user_price:
+        description: Последняя ставка пользователя
+        type: integer
+        format: uint32
+        readOnly: true
+      rule:
+        description: |
+          Текущее активное правило, возможные значения
+          * pick - Забрать по базе
+          * normal - Обычного аукциона
+          * extra - Экстра аукциона
+          * hot - Тридцати минутная гонка
+          * confirm - Ожидание подтверждения
+          * wait - Ожидание активации правил
+        type: string
+        enum: 
+        - pick
+        - normal
+        - extra
+        - hot
+        - confirm
+        - wait
+        readOnly: true
+      end:
+        description: Время окончания действия текущих правил
+        type: string
+        format: date-time
+        readOnly: true
+      rest:
+        description: Количество секунд до окончания розыгрыша
+        type: integer
+        format: uint32
+    required: 
+    - rules
+    - object
+    - group_key
+  Bet:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: uint64
+        readOnly: true
+      value:
+        type: integer
+        format: uint32
+        minimum: 0
+        exclusiveMinimum: true
+      winner:
+        type: boolean
+        readOnly: true
+      created_at:
+        type: string
+        format: date-time
+        readOnly: true
+      deleted_at:
+        type: string
+        format: date-time
+        readOnly: true
+      user_id:
+        type: integer
+        format: uint32
+    required:
+    - value
+    - user_id
+  History:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: uint32
+      action:
+        description: |
+          Тип события истории
+          * lot_added - лот добавлен
+          * lot_booked - лот забронироват
+          * lot_completed - лот завершен
+          * lot_no_winner - победитель не определен
+          * bet_placed - сделана ставка
+          * bet_canceled - ставка отменена
+          * bet_confirmed - ставка подтверждена
+        type: string
+        enum:
+        - lot_added
+        - lot_booked
+        - lot_completed
+        - lot_no_winner
+        - bet_placed
+        - bet_canceled
+        - bet_confirmed
+      rule:
+        description: Название правила
+        type: string
+      rule_price:
+        description: Базовая ставка по правилу
+        type: integer
+        format: uint32
+      current_price: 
+        description: Тукущая ставка
+        type: integer
+        format: uint32
+      current_price_user_id:
+        description: Пользователь сделавшый текущию ставку
+        type: integer
+        format: uint32
+      created_at:
+        description: Время события истории
+        type: string
+        format: date-time
+      lot_id:
+        description: ID лота
+        type: integer
+        format: uint32
+      user_id:
+        description: ID пользователя
+        type: integer
+        format: uint32
+    readOnly: true
+  ObjectType:
+    description: |
+      Типы объектов
+      * trip - Рейс
+      * trash - Хлам
+    type: string
+    enum: 
+    - trip
+    - trash
+  Object:
+    type: object
+    discriminator: type
+    properties:
+      type:
+        $ref: '#/definitions/ObjectType'
+    required: 
+    - id
+    - type
+  Trip:
+    description: Информация о рейсе
+    allOf: 
+    - $ref: '#/definitions/Object'
+    - type: object
+      properties:
+        data:
+          type: object
+          properties:
+            orders:
+              description: Заказы
+              type: array
+              items:
+                $ref: '#/definitions/Order'
+              minItems: 1
+            points:
+              description: Точки в маршруте
+              type: array
+              items:
+                $ref: '#/definitions/Point'
+              minItems: 2
+            tonnage:
+              description: Вес груза в килограммах
+              type: integer
+              format: uint32
+            type:
+              description: Тип транспортного средства
+              type: string
+            description:
+              description: Описание маршрута
+              type: string
+            docs_pack_url:
+              description: Адресс для скачивания документов
+              type: string
+          required: 
+          - points
+          - weight
+  Order:
+    description: Информация о заказе
+    type: object
+    properties:
+      consignee_name:
+        description: Название грузополучателя
+        type: string
+      consignee_address:
+        description: Адрес грузополучателя
+        type: string
+      invoices:
+        description: Номера накладных
+        type: array
+        items:
+          type: string
+  Point:
+    description: Информация о точке рейса
+    type: object
+    properties:
+      unloading:
+        description: Точка выгрузки
+        type: boolean
+      company:
+        description: Название компании
+        type: string
+      address:
+        description: Адресс
+        type: string
+      date:
+        description: Дата прибытия в точку
+        type: string
+        format: date-time
+      note:
+        description: Примечание к точке
+        type: string
+    required: 
+    - unloading
+    - company
+    - address
+    - date
+  Confirm:
+    type: object
+    discriminator: type
+    properties:
+      type:
+        $ref: '#/definitions/ObjectType'
+  ConfirmTrip:
+    description: Информация подтверждения рейса
+    allOf: 
+    - $ref: '#/definitions/Confirm'
+    - type: object
+      properties:
+        surname:
+          type: string
+        name:
+          type: string
+        patronymic:
+          type: string
+        truck_number:
+          type: string
+        trailer_number:
+          type: string
+        phone_number:
+          type: string
+        passport_serie:
+          type: string
+        passport_number:
+          type: string
+        passport_issued:
+          type: string
+        passport_date:
+          type: string
+        dr_lic_serie:
+          type: string
+        dr_lic_number:
+          type: string
+        date_arrival:
+          type: string
+          format: date-time
+      required: 
+      - surname
+      - name
+      - truck_number
+      - phone_number
+  Complete:
+    type: object
+    discriminator: type
+    properties:
+      type:
+        $ref: '#/definitions/ObjectType'
+  CompleteTrip:
+    description: Информация о акте выполненых работ для рейса
+    allOf: 
+    - $ref: '#/definitions/Complete'
+    - type: object
+      properties:
+        act_number:
+          type: string
+        act_date:
+          type: string
+          format: date-time
+        send_date:
+          type: string
+        receive_date:
+          type: string
+          format: date-time
+        receive_repeat_date:
+          type: string
+          format: date-time
+        registry_date:
+          type: string
+          format: date-time
+        payment_date:
+          type: string
+          format: date-time
+        rise_in_price:
+          type: integer
+          format: uint32
+        comment:
+          type: string
+      required: 
+      - act_number
+      - act_date
+      - send_date
+  Trash:
+    description: Информация о хламе
+    allOf: 
+    - $ref: '#/definitions/Object'
+    - type: object
+      properties:
+        name:
+          type: string
+  Error:
+    type: object
+    properties:
+      message:
+        type: string
+  MissingLotID:
+    type: object
+    $ref: '#/definitions/Error'
+    description: |
+      Пропущен параметр LotID
+  ChangeActStructure:
+    type: object
+    properties:
+      doc_number:
+        type: string
+      date:
+        type: string
+        format: date-time
+    required:
+      - act_number
+      - date
+  AllowChangeStructure:
+    type: object
+    properties:
+      allow_change:
+        type: string
+    required:
+      - allow_change
+  GetActStructure:
+    type : object
+    properties:
+      act_number:
+        type: string
+      date:
+        type: string
+        format: date-time
+      lot_completed:
+        type: boolean
+      allow_change:
+        type: boolean
+securityDefinitions:
+  JWT:
+    type: apiKey
+    name: Authorization
+    in: header

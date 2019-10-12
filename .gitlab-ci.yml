@@ -1,0 +1,47 @@
+variables:
+  IMAGE_TAG_DEV: $CI_REGISTRY_IMAGE:dev
+  IMAGE_TAG_LATEST: $CI_REGISTRY_IMAGE:latest
+  IMAGE_TAG_VERSION: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+  IMAGE_TAG_FEATURE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+
+services:
+  - docker:dind
+
+stages:
+  - build-docker
+
+build-docker-dev:
+  stage: build-docker
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker build --cache-from $IMAGE_TAG_DEV -t $IMAGE_TAG_DEV .
+    - docker push $IMAGE_TAG_DEV
+  only:
+    - develop
+  tags:
+    - docker
+
+build-docker-prod:
+  stage: build-docker
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker pull $IMAGE_TAG_LATEST || true
+    - docker build --cache-from $IMAGE_TAG_LATEST -t $IMAGE_TAG_LATEST -t $IMAGE_TAG_VERSION .
+    - docker push $IMAGE_TAG_LATEST
+    - docker push $IMAGE_TAG_VERSION
+  only:
+    - tags
+  tags:
+    - docker
+
+build-docker-feature:
+  stage: build-docker
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker build --cache-from $IMAGE_TAG_FEATURE -t $IMAGE_TAG_FEATURE .
+    - docker push $IMAGE_TAG_FEATURE
+  only:
+    - /^feature.*$/
+  tags:
+    - docker
+  when: manual

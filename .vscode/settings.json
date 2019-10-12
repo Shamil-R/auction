@@ -1,0 +1,25 @@
+{
+    "go.lintOnSave": "off",
+    "todohighlight.include": [
+        "**/*.go"
+    ],
+    "todohighlight.exclude": [
+        "**/node_modules/**",
+        "**/bower_components/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/.vscode/**",
+        "**/.github/**",
+        "**/_output/**",
+        "**/*.min.*",
+        "**/*.map",
+        "**/.next/**",
+        "**/vendor/**"
+    ],
+    "gitflow4code.features": [
+        {
+            "name": "feature/new-rule",
+            "base": "develop"
+        }
+    ]
+}

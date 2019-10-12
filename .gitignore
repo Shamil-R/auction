@@ -1,0 +1,10 @@
+.DS_Store
+.env
+database.sqlite
+.auction.yaml
+debug
+vendor
+myreadme
+runGolang
+docker-compose.yml
+.idea

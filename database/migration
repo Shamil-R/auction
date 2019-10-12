@@ -1,0 +1,12 @@
+#!/bin/sh
+
+cd "$(dirname "$0")" || exit
+
+docker run \
+    --tty \
+    --interactive \
+    --rm \
+    --net=host \
+    --env-file "$(pwd)/.env" \
+    --volume "$(pwd):/laravel/database" \
+    registry.ncsd.ru/docker/migration:latest artisan "$@"

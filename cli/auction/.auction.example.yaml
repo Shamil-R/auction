@@ -1,0 +1,38 @@
+production: false # режим запуска
+log_level: DEBUG # уровень логирования
+root_password: password  # пароль root пользователя
+server: # настройки запуска сервеа
+  port: 8080 # порт
+  jwt_secret: secret # секрет для jwt
+  manager_jwt_expires: '87600h' # время жизни jwt для пользователей типа manager
+  user_jwt_expires: '24h' # время жизни jwt для пользователей типа user (ТЭК)
+db: # настройки бд
+  driver: mssql # драйвер
+  host: 127.0.0.1 # хост
+  port: 1433 # порт
+  username: username # пользователь
+  password: password # пароль
+  database: database # бд
+auction: # настройки аукциона
+  rule: # настройки правил
+    normal: # правила стандартного аукциона
+      bet_step: 500 # шаг ставки
+      last_moment: '15m' # время до окончания аукциона в течении которого он может продлиться, если будет сделана ставка
+      prolong_duration: '15m' # время на которое продлевается аукцион в случае ставки в последние минуты
+      max_duration: '3h' # макс продолжительность аукциона
+      confirm_duration: '1h' # время на подтверждение ставки
+    extra: # правила экстра аукциона
+      bet_step: 500 # шаг ставки
+      hot_count: 3 # количество уникальных ставок для запуска правил гонки
+      hot_duration: '30m' # продолжительность гонки
+      confirm_duration: '1h' # время на подтверждение ставки
+    pick: # правила по базе
+      bet_step: 500 # шаг ставки
+      confirm_duration: '1h' # время на подтверждение ставки
+feedback_service: # настройки сервиса обработки отзывов
+  email_server: email_server # адресс почтового сервера
+  email_address: email_address # email получателя
+  subject: Auction Feedback # тема email
+back_service: # настройки для сервисов которые используют аукцион
+  managers:
+    logistic: back_url  # сервис логистика и его адресс API по кторому аукцион уведомляет об изменениях
